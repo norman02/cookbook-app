@@ -1,0 +1,43 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+.yarn/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Build output
+build/
+dist/
+coverage/
+public/
+.vscode/
+.DS_Store
+
+# Logs
+logs/
+*.log
+debug.log
+out.log
+
+# Database files
+*.sqlite
+*.db
+
+# Miscellaneous
+.idea/
+*.swp
+Thumbs.db
+
+# Frontend specific files
+/.next/
+/.next/
+/.cache/
+/parcel-cache/
+/webpack/
+
