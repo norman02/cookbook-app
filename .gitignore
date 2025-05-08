@@ -3,6 +3,10 @@ node_modules/
 npm-debug.log
 yarn-error.log
 .yarn/
+eslint.config.mjs
+package-lock.json
+package.json
+package.json~
 
 # Environment variables
 .env
