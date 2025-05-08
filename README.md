@@ -2,6 +2,39 @@
 
 Welcome to the **Cookbook App**, a full-stack web application built with the **MERN (MongoDB, Express.js, React, Node.js) stack**. This app allows users to store, search, and manage their favorite recipes dynamically.
 
+## 📂 Project Structure
+
+```
+cookbook-app/
+├── backend/           # Node.js + Express backend
+│   ├── controllers/   # Business logic for API endpoints
+│   ├── models/        # Mongoose schema definitions
+│   ├── routes/        # Express API routes
+│   ├── middleware/    # Authentication, validation, etc.
+│   ├── config/        # Database connection & environment settings
+│   ├── index.js       # Entry point for backend server
+│   ├── package.json   # Backend dependencies
+│   ├── .env           # Environment variables (MongoDB URI, JWT secret)
+│   └── README.md      # Backend-specific documentation
+│
+├── frontend/          # React frontend
+│   ├── src/           # Source code
+│   │   ├── components/ # Reusable UI components
+│   │   ├── pages/      # Page-level React components
+│   │   ├── context/    # Global state management
+│   │   ├── utils/      # Helper functions
+│   │   ├── App.js      # Main React app component
+│   │   ├── index.js    # Entry point for frontend
+│   ├── public/        # Static assets (favicon, images)
+│   ├── package.json   # Frontend dependencies
+│   ├── .env           # Frontend environment variables
+│   └── README.md      # Frontend-specific documentation
+│
+├── LICENSE            # Project license
+├── README.md          # Main project documentation
+├── .gitignore         # Ignored files for Git
+```
+
 ## 📌 Project Roadmap
 
 ### ✅ **Phase 1: Planning & Setup (Completed)**
@@ -61,5 +94,4 @@ npm start
 
 ## 📜 License
 This project is licensed under the MIT License. Feel free to contribute!
-
 
