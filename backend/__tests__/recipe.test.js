@@ -1,8 +1,58 @@
-const { getRecipes } = require("../index"); // Import function
+/* eslint-env jest */
+const { getRecipes, addRecipe } = require("../index");
+const fs = require("fs");
+const path = require("path");
+const filePath = path.join(__dirname, "../recipes.json");
 
 describe("Recipe API", () => {
+  // Reset the recipes file before every test to ensure isolation
+  beforeEach(() => {
+    fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+  });
+
   test("should return an array of recipes", () => {
     const recipes = getRecipes();
     expect(Array.isArray(recipes)).toBe(true); // Expect result to be an array
+  });
+
+  test("should add a new recipe", () => {
+    const newRecipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar", "cocoa powder"],
+      instructions: "Mix ingredients and bake."
+    };
+
+    const result = addRecipe(newRecipe);
+    expect(result).toBe(true);
+
+    const updatedRecipes = getRecipes();
+    expect(updatedRecipes.some((r) => r.name === "Chocolate Cake")).toBe(true);
+  });
+
+  test("should return an empty array if recipes.json is missing", () => {
+    // Simulate missing file by mocking fs.readFileSync to throw an error
+    jest.spyOn(fs, "readFileSync").mockImplementation(() => {
+      throw new Error("File not found");
+    });
+
+    expect(getRecipes()).toEqual([]);
+    // Restore the original implementation so other tests are not affected
+    fs.readFileSync.mockRestore();
+  });
+
+  test("should not add a duplicate recipe", () => {
+    const recipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar", "cocoa powder"],
+      instructions: "Mix ingredients and bake."
+    };
+
+    // First addition should succeed
+    const result1 = addRecipe(recipe);
+    expect(result1).toBe(true);
+
+    // Second addition with the same recipe should be rejected as a duplicate
+    const result2 = addRecipe(recipe);
+    expect(result2).toBe(false);
   });
 });

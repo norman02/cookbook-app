@@ -1,8 +1,12 @@
 [
   {
-    "id": 1,
-    "name": "Spaghetti Bolognese",
-    "ingredients": ["pasta", "tomato sauce", "ground beef"],
-    "instructions": "Cook pasta, mix with sauce and beef."
+    "name": "Chocolate Cake",
+    "ingredients": [
+      "flour",
+      "sugar",
+      "cocoa powder"
+    ],
+    "instructions": "Mix ingredients and bake.",
+    "id": 1
   }
 ]
