@@ -1,5 +1,5 @@
 /* eslint-env jest */
-const { getRecipes, addRecipe, updateRecipe } = require("../index");
+const { getRecipes, addRecipe, updateRecipe, deleteRecipe } = require("../index");
 const fs = require("fs");
 const path = require("path");
 const filePath = path.join(__dirname, "../recipes.json");
@@ -78,5 +78,20 @@ describe("Recipe API", () => {
         (r) => r.name === "Chocolate Cake" && r.ingredients.includes("vanilla"),
       ),
     ).toBe(true);
+  });
+
+  test("should deletet an existing recipe", () => {
+    const recipe = {
+      name: "Chocolate Cake",
+      inngredients: ["flour", "sugar", "cocoa powder"],
+      instructions: "Mix ingredients and bake.",
+    };
+
+    addRecipe(recipe); // Add initial recipe
+
+    const result = deleteRecipe(recipe.name); // Attempt delete
+
+    expect(result).toBe(true); // Expeect success
+    expect(getRecipes().some((r) => r.name === "Chocolate Cake")).toBe(false); // Should be removed
   });
 });
