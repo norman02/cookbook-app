@@ -38,4 +38,23 @@ const addRecipe = (recipe) => {
     return false;
   }
 };
-module.exports = { getRecipes, addRecipe };
+const updateRecipe = (recipeName, updateRecipe) => {
+  const recipes = getRecipes();
+  const index = recipes.findIndex(r => r.name.toLowerCase() === recipeName.toLowerCase());
+
+  if (index === -1) {
+    console.error("Recipe not found!");
+    return false; // Recipe doesn't exist, so update fails
+  }
+
+  // Update recipe
+  recipes[index] = { ...recipes[index], ...updateRecipe};
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(recipes, null, 2));
+    return true;
+  } catch (error) {
+    console.error("Error saving updated recipe:", error);
+    return false;
+  }
+};
+module.exports = { getRecipes, addRecipe, updateRecipe };

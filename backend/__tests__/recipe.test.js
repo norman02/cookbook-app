@@ -1,5 +1,5 @@
 /* eslint-env jest */
-const { getRecipes, addRecipe } = require("../index");
+const { getRecipes, addRecipe, updateRecipe } = require("../index");
 const fs = require("fs");
 const path = require("path");
 const filePath = path.join(__dirname, "../recipes.json");
@@ -19,7 +19,7 @@ describe("Recipe API", () => {
     const newRecipe = {
       name: "Chocolate Cake",
       ingredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake."
+      instructions: "Mix ingredients and bake.",
     };
 
     const result = addRecipe(newRecipe);
@@ -44,7 +44,7 @@ describe("Recipe API", () => {
     const recipe = {
       name: "Chocolate Cake",
       ingredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake."
+      instructions: "Mix ingredients and bake.",
     };
 
     // First addition should succeed
@@ -54,5 +54,29 @@ describe("Recipe API", () => {
     // Second addition with the same recipe should be rejected as a duplicate
     const result2 = addRecipe(recipe);
     expect(result2).toBe(false);
+  });
+  test("should update an existing recipe", () => {
+    const recipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar", "cocoa powder"],
+      instructions: "Mix ingredients and bake.",
+    };
+
+    addRecipe(recipe); // Add initial recipe
+
+    const updatedRecipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar", "cocoa powder", "vanilla"],
+      instructions: "Mix ingredients and bake with vanilla.",
+    };
+
+    const result = updateRecipe(recipe.name, updatedRecipe); // Attempt update
+
+    expect(result).toBe(true); // Expect success
+    expect(
+      getRecipes().some(
+        (r) => r.name === "Chocolate Cake" && r.ingredients.includes("vanilla"),
+      ),
+    ).toBe(true);
   });
 });

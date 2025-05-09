@@ -4,9 +4,10 @@
     "ingredients": [
       "flour",
       "sugar",
-      "cocoa powder"
+      "cocoa powder",
+      "vanilla"
     ],
-    "instructions": "Mix ingredients and bake.",
+    "instructions": "Mix ingredients and bake with vanilla.",
     "id": 1
   }
 ]
