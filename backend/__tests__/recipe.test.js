@@ -1,5 +1,10 @@
 /* eslint-env jest */
-const { getRecipes, addRecipe, updateRecipe, deleteRecipe } = require("../index");
+const {
+  getRecipes,
+  addRecipe,
+  updateRecipe,
+  deleteRecipe,
+} = require("../index");
 const fs = require("fs");
 const path = require("path");
 const filePath = path.join(__dirname, "../recipes.json");
@@ -9,7 +14,13 @@ describe("Recipe API", () => {
   beforeEach(() => {
     fs.writeFileSync(filePath, JSON.stringify([], null, 2));
   });
+  beforeEach(() => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
 
+  afterEach(() => {
+    console.error.mockRestore(); // Restore default logging after each test
+  });
   test("should return an array of recipes", () => {
     const recipes = getRecipes();
     expect(Array.isArray(recipes)).toBe(true); // Expect result to be an array
@@ -93,5 +104,71 @@ describe("Recipe API", () => {
 
     expect(result).toBe(true); // Expeect success
     expect(getRecipes().some((r) => r.name === "Chocolate Cake")).toBe(false); // Should be removed
+  });
+
+  test("should return false if trying to delete a non-existent recipe", () => {
+    const result = deleteRecipe("Invisible Recipe");
+    expect(result).toBe(false); // Ensure false is returned
+  });
+
+  test("should return false when trying to update a recipe that doesn't exist", () => {
+    const updatedRecipe = { ingredients: ["extra vanilla"] };
+    const result = updateRecipe("Nonexistent Recipe", updatedRecipe);
+    expect(result).toBe(false);
+  });
+  test("should return false if writing recipes file fails", () => {
+    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
+      throw new Error("Write failed");
+    });
+
+    const newRecipe = {
+      name: "Test Recipe",
+      ingredients: ["item"],
+      instructions: "Do something",
+    };
+    const result = addRecipe(newRecipe);
+
+    expect(result).toBe(false); // Should fail gracefully
+    fs.writeFileSync.mockRestore(); // Restore normal behavior after test
+  });
+  test("should return false if writing updated recipe file fails", () => {
+    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
+      throw new Error("Write failed");
+    });
+
+    const recipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar", "cocoa powder"],
+      instructions: "Mix ingredients and bake.",
+    };
+
+    addRecipe(recipe); // Ensure recipe exists before updating
+
+    const updatedRecipe = {
+      ingredients: ["flour", "sugar", "cocoa powder", "vanilla"],
+      instructions: "Mix ingredients and bake with vanilla.",
+    };
+
+    const result = updateRecipe(recipe.name, updatedRecipe);
+
+    expect(result).toBe(false); // Function should fail gracefully
+    fs.writeFileSync.mockRestore(); // Restore normal behavior after test
+  });
+  test("should return false if writing deleted recipe file fails", () => {
+    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
+      throw new Error("Write failed");
+    });
+
+    const recipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour"],
+      instructions: "Bake.",
+    };
+    addRecipe(recipe); // Ensure recipe exists before deleting
+
+    const result = deleteRecipe(recipe.name);
+
+    expect(result).toBe(false); // Function should fail gracefully
+    fs.writeFileSync.mockRestore(); // Restore normal behavior after test
   });
 });
