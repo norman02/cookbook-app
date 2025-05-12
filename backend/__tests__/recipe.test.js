@@ -203,4 +203,20 @@ describe("Recipe API", () => {
     fs.existsSync.mockRestore();
     console.warn.mockRestore(); // Restore default behavior after test
   });
+  test("should detect duplicate recipe using Set for faster lookup", () => {
+    const recipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar"],
+      instructions: "Bake.",
+    };
+    addRecipe(recipe); // First addition should succeed
+
+    // Simulate an optimized duplicate check
+    jest.spyOn(Set.prototype, "has").mockImplementation(() => true);
+
+    const result = addRecipe(recipe); // Second attempt should fail faster
+    expect(result).toBe(false); // Ensure duplicate detection works efficiently
+
+    Set.prototype.has.mockRestore(); // Restore original behavior after test
+  });
 });

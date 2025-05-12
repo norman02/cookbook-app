@@ -41,26 +41,22 @@ const getRecipes = () => {
  * Prevents duplicate recipes based on name (case insensitive).
  * Returns `true` if successful, `false` otherwise.
  */
+// Assign a unique ID to the recipe
 const addRecipe = (recipe) => {
   const recipes = getRecipes();
+  const recipeNames = new Set(recipes.map((r) => r.name.toLowerCase().trim()));
 
-  // Prevent duplicate recipes based on name
-  if (
-    recipes.some(
-      (r) => r.name.trim().toLowerCase() === recipe.name.trim().toLowerCase(),
-    )
-  ) {
+  if (recipeNames.has(recipe.name.toLowerCase().trim())) {
     console.error("⚠️ Recipe already exists!");
     return false;
   }
 
-  // Assign a unique ID to the recipe
+  // Assign a unique ID & push recipe
   recipe.id = recipes.length + 1;
   recipes.push(recipe);
 
-  return saveRecipes(recipes); // Use helper function
+  return saveRecipes(recipes);
 };
-
 /**
  * Updates an existing recipe by name.
  * Merges new properties into the existing recipe.

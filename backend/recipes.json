@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "name": "Chocolate Cake",
+    "ingredients": [
+      "flour",
+      "sugar"
+    ],
+    "instructions": "Bake.",
+    "id": 1
+  }
+]
