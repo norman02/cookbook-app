@@ -172,16 +172,35 @@ describe("Recipe API", () => {
     expect(result).toBe(false); // Function should fail gracefully
     fs.writeFileSync.mockRestore(); // Restore normal behavior after test
   });
-  test("should return false if writing recipes file fails using saveRecipes", ()=> {
-    jest.spyOn(fs, "writeFileSync").mockImplementation(()=> {
+  test("should return false if writing recipes file fails using saveRecipes", () => {
+    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
       throw new Error("Write failed");
-    })
+    });
 
-    const recipes = [{ name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Mix & bake "}];
+    const recipes = [
+      {
+        name: "Chocolate Cake",
+        ingredients: ["flour", "sugar"],
+        instructions: "Mix & bake ",
+      },
+    ];
     const result = saveRecipes(recipes); // Attempt to save recipes
 
     expect(result).toBe(false); // Expect the function to gracefully fail
     fs.writeFileSync.mockRestore(); // Restore normal behavior
+  });
+  test("should return empty array and warn if recipes.json file is missing", () => {
+    jest.spyOn(console, "warn").mockImplementation(() => {}); // Mock console.warn
+    jest.spyOn(fs, "existsSync").mockReturnValue(false); // Simulate missing file
 
+    const recipes = getRecipes();
+
+    expect(recipes).toEqual([]); // Should return empty array
+    expect(console.warn).toHaveBeenCalledWith(
+      "recipes.json file not found returning an empty array.",
+    );
+
+    fs.existsSync.mockRestore();
+    console.warn.mockRestore(); // Restore default behavior after test
   });
 });

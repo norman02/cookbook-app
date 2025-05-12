@@ -24,13 +24,14 @@ const saveRecipes = (recipes) => {
  */
 const getRecipes = () => {
   if (!fs.existsSync(filePath)) {
+    console.warn("recipes.json file not found returning an empty array.");
     return []; // Ensures consistency in return type
   }
   try {
     const data = fs.readFileSync(filePath, "utf-8");
     return JSON.parse(data) || []; // Fallback to an empty array
   } catch (error) {
-    console.error("❌ Error reading recipes:", error);
+    console.error("Failed to parse recipes.json", error);
     return [];
   }
 };
@@ -42,9 +43,13 @@ const getRecipes = () => {
  */
 const addRecipe = (recipe) => {
   const recipes = getRecipes();
-  
+
   // Prevent duplicate recipes based on name
-  if (recipes.some(r => r.name.trim().toLowerCase() === recipe.name.trim().toLowerCase())) {
+  if (
+    recipes.some(
+      (r) => r.name.trim().toLowerCase() === recipe.name.trim().toLowerCase(),
+    )
+  ) {
     console.error("⚠️ Recipe already exists!");
     return false;
   }
@@ -63,7 +68,9 @@ const addRecipe = (recipe) => {
  */
 const updateRecipe = (recipeName, updatedRecipe) => {
   const recipes = getRecipes();
-  const index = recipes.findIndex(r => r.name.toLowerCase() === recipeName.toLowerCase());
+  const index = recipes.findIndex(
+    (r) => r.name.toLowerCase() === recipeName.toLowerCase(),
+  );
 
   if (index === -1) {
     console.error("❌ Recipe not found!");
@@ -82,7 +89,9 @@ const updateRecipe = (recipeName, updatedRecipe) => {
  */
 const deleteRecipe = (recipeName) => {
   const recipes = getRecipes();
-  const updatedRecipes = recipes.filter(r => r.name.toLowerCase() !== recipeName.toLowerCase());
+  const updatedRecipes = recipes.filter(
+    (r) => r.name.toLowerCase() !== recipeName.toLowerCase(),
+  );
 
   if (updatedRecipes.length === recipes.length) {
     console.error("❌ Recipe not found!");
@@ -93,4 +102,10 @@ const deleteRecipe = (recipeName) => {
 };
 
 // Export functions for external use
-module.exports = { getRecipes, addRecipe, updateRecipe, deleteRecipe, saveRecipes };
+module.exports = {
+  getRecipes,
+  addRecipe,
+  updateRecipe,
+  deleteRecipe,
+  saveRecipes,
+};
