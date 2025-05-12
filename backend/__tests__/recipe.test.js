@@ -4,6 +4,7 @@ const {
   addRecipe,
   updateRecipe,
   deleteRecipe,
+  saveRecipes,
 } = require("../index");
 const fs = require("fs");
 const path = require("path");
@@ -170,5 +171,17 @@ describe("Recipe API", () => {
 
     expect(result).toBe(false); // Function should fail gracefully
     fs.writeFileSync.mockRestore(); // Restore normal behavior after test
+  });
+  test("should return false if writing recipes file fails using saveRecipes", ()=> {
+    jest.spyOn(fs, "writeFileSync").mockImplementation(()=> {
+      throw new Error("Write failed");
+    })
+
+    const recipes = [{ name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Mix & bake "}];
+    const result = saveRecipes(recipes); // Attempt to save recipes
+
+    expect(result).toBe(false); // Expect the function to gracefully fail
+    fs.writeFileSync.mockRestore(); // Restore normal behavior
+
   });
 });

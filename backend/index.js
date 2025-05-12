@@ -5,13 +5,30 @@ const path = require("path");
 const filePath = path.join(__dirname, "recipes.json");
 
 /**
+ * Helper function to save recipes to the JSON file.
+ * Returns `true` if successful, `false` otherwise.
+ */
+const saveRecipes = (recipes) => {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(recipes, null, 2));
+    return true;
+  } catch (error) {
+    console.error("❌ Error saving recipes:", error);
+    return false;
+  }
+};
+
+/**
  * Retrieves all recipes from the JSON file.
  * If the file is missing or unreadable, returns an empty array.
  */
 const getRecipes = () => {
+  if (!fs.existsSync(filePath)) {
+    return []; // Ensures consistency in return type
+  }
   try {
     const data = fs.readFileSync(filePath, "utf-8");
-    return data ? JSON.parse(data) : [];
+    return JSON.parse(data) || []; // Fallback to an empty array
   } catch (error) {
     console.error("❌ Error reading recipes:", error);
     return [];
@@ -25,7 +42,7 @@ const getRecipes = () => {
  */
 const addRecipe = (recipe) => {
   const recipes = getRecipes();
-
+  
   // Prevent duplicate recipes based on name
   if (recipes.some(r => r.name.trim().toLowerCase() === recipe.name.trim().toLowerCase())) {
     console.error("⚠️ Recipe already exists!");
@@ -36,13 +53,7 @@ const addRecipe = (recipe) => {
   recipe.id = recipes.length + 1;
   recipes.push(recipe);
 
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(recipes, null, 2));
-    return true;
-  } catch (error) {
-    console.error("❌ Error saving recipe:", error);
-    return false;
-  }
+  return saveRecipes(recipes); // Use helper function
 };
 
 /**
@@ -62,13 +73,7 @@ const updateRecipe = (recipeName, updatedRecipe) => {
   // Merge updates into the existing recipe
   recipes[index] = { ...recipes[index], ...updatedRecipe };
 
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(recipes, null, 2));
-    return true;
-  } catch (error) {
-    console.error("❌ Error saving updated recipe:", error);
-    return false;
-  }
+  return saveRecipes(recipes);
 };
 
 /**
@@ -84,14 +89,8 @@ const deleteRecipe = (recipeName) => {
     return false;
   }
 
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(updatedRecipes, null, 2));
-    return true;
-  } catch (error) {
-    console.error("❌ Error saving updated recipe list:", error);
-    return false;
-  }
+  return saveRecipes(updatedRecipes);
 };
 
 // Export functions for external use
-module.exports = { getRecipes, addRecipe, updateRecipe, deleteRecipe };
+module.exports = { getRecipes, addRecipe, updateRecipe, deleteRecipe, saveRecipes };
