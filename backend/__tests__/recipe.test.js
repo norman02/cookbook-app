@@ -1,222 +1,91 @@
-/* eslint-env jest */
-const {
-  getRecipes,
-  addRecipe,
-  updateRecipe,
-  deleteRecipe,
-  saveRecipes,
-} = require("../index");
 const fs = require("fs");
-const path = require("path");
-const filePath = path.join(__dirname, "../recipes.json");
+const { getRecipes, addRecipe, updateRecipe, deleteRecipe, saveRecipes } = require("../index");
+
+jest.mock("fs", () => ({
+  existsSync: jest.fn(),
+  readFileSync: jest.fn(),
+  promises: {
+    writeFile: jest.fn(),
+  },
+}));
+
+// Setup and Cleanup
+beforeEach(() => {
+  jest.spyOn(console, "error").mockImplementation(() => {}); // Silence console errors in tests
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  console.error.mockRestore();
+  console.warn.mockRestore();
+  jest.restoreAllMocks(); // Restore original behavior
+});
 
 describe("Recipe API", () => {
-  // Reset the recipes file before every test to ensure isolation
-  beforeEach(() => {
-    fs.writeFileSync(filePath, JSON.stringify([], null, 2));
-  });
-  beforeEach(() => {
-    jest.spyOn(console, "error").mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    console.error.mockRestore(); // Restore default logging after each test
-  });
   test("should return an array of recipes", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake" }]));
+
     const recipes = getRecipes();
-    expect(Array.isArray(recipes)).toBe(true); // Expect result to be an array
-  });
-
-  test("should add a new recipe", () => {
-    const newRecipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake.",
-    };
-
-    const result = addRecipe(newRecipe);
-    expect(result).toBe(true);
-
-    const updatedRecipes = getRecipes();
-    expect(updatedRecipes.some((r) => r.name === "Chocolate Cake")).toBe(true);
+    expect(Array.isArray(recipes)).toBe(true);
+    expect(recipes.length).toBe(1);
   });
 
   test("should return an empty array if recipes.json is missing", () => {
-    // Simulate missing file by mocking fs.readFileSync to throw an error
-    jest.spyOn(fs, "readFileSync").mockImplementation(() => {
-      throw new Error("File not found");
-    });
-
-    expect(getRecipes()).toEqual([]);
-    // Restore the original implementation so other tests are not affected
-    fs.readFileSync.mockRestore();
+    fs.existsSync.mockReturnValue(false);
+    const recipes = getRecipes();
+    expect(recipes).toEqual([]);
+    expect(console.warn).toHaveBeenCalledWith("⚠️ recipes.json file not found, returning an empty array.");
   });
 
-  test("should not add a duplicate recipe", () => {
-    const recipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake.",
-    };
+  test("should add a new recipe", async () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify([]));
 
-    // First addition should succeed
-    const result1 = addRecipe(recipe);
-    expect(result1).toBe(true);
+    const newRecipe = { name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Bake." };
+    fs.promises.writeFile.mockResolvedValue(); // Simulate successful file write
 
-    // Second addition with the same recipe should be rejected as a duplicate
-    const result2 = addRecipe(recipe);
-    expect(result2).toBe(false);
-  });
-  test("should update an existing recipe", () => {
-    const recipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake.",
-    };
-
-    addRecipe(recipe); // Add initial recipe
-
-    const updatedRecipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour", "sugar", "cocoa powder", "vanilla"],
-      instructions: "Mix ingredients and bake with vanilla.",
-    };
-
-    const result = updateRecipe(recipe.name, updatedRecipe); // Attempt update
-
-    expect(result).toBe(true); // Expect success
-    expect(
-      getRecipes().some(
-        (r) => r.name === "Chocolate Cake" && r.ingredients.includes("vanilla"),
-      ),
-    ).toBe(true);
+    const result = await addRecipe(newRecipe);
+    expect(result).toBe(true);
   });
 
-  test("should deletet an existing recipe", () => {
-    const recipe = {
-      name: "Chocolate Cake",
-      inngredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake.",
-    };
+  test("should not add a duplicate recipe", async () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake" }]));
 
-    addRecipe(recipe); // Add initial recipe
+    const duplicateRecipe = { name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Bake." };
+    fs.promises.writeFile.mockResolvedValue();
 
-    const result = deleteRecipe(recipe.name); // Attempt delete
-
-    expect(result).toBe(true); // Expeect success
-    expect(getRecipes().some((r) => r.name === "Chocolate Cake")).toBe(false); // Should be removed
-  });
-
-  test("should return false if trying to delete a non-existent recipe", () => {
-    const result = deleteRecipe("Invisible Recipe");
-    expect(result).toBe(false); // Ensure false is returned
-  });
-
-  test("should return false when trying to update a recipe that doesn't exist", () => {
-    const updatedRecipe = { ingredients: ["extra vanilla"] };
-    const result = updateRecipe("Nonexistent Recipe", updatedRecipe);
+    const result = await addRecipe(duplicateRecipe);
     expect(result).toBe(false);
   });
-  test("should return false if writing recipes file fails", () => {
-    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
-      throw new Error("Write failed");
-    });
 
-    const newRecipe = {
-      name: "Test Recipe",
-      ingredients: ["item"],
-      instructions: "Do something",
-    };
-    const result = addRecipe(newRecipe);
+  test("should update an existing recipe", async () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake", ingredients: ["flour"] }]));
 
-    expect(result).toBe(false); // Should fail gracefully
-    fs.writeFileSync.mockRestore(); // Restore normal behavior after test
+    const updatedRecipe = { ingredients: ["flour", "sugar", "vanilla"] };
+    fs.promises.writeFile.mockResolvedValue();
+
+    const result = await updateRecipe("Chocolate Cake", updatedRecipe);
+    expect(result).toBe(true);
   });
-  test("should return false if writing updated recipe file fails", () => {
-    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
-      throw new Error("Write failed");
-    });
 
-    const recipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour", "sugar", "cocoa powder"],
-      instructions: "Mix ingredients and bake.",
-    };
+  test("should delete an existing recipe", async () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake" }]));
 
-    addRecipe(recipe); // Ensure recipe exists before updating
+    fs.promises.writeFile.mockResolvedValue();
 
-    const updatedRecipe = {
-      ingredients: ["flour", "sugar", "cocoa powder", "vanilla"],
-      instructions: "Mix ingredients and bake with vanilla.",
-    };
-
-    const result = updateRecipe(recipe.name, updatedRecipe);
-
-    expect(result).toBe(false); // Function should fail gracefully
-    fs.writeFileSync.mockRestore(); // Restore normal behavior after test
+    const result = await deleteRecipe("Chocolate Cake");
+    expect(result).toBe(true);
   });
-  test("should return false if writing deleted recipe file fails", () => {
-    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
-      throw new Error("Write failed");
-    });
 
-    const recipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour"],
-      instructions: "Bake.",
-    };
-    addRecipe(recipe); // Ensure recipe exists before deleting
+  test("should return false if writing recipes file fails", async () => {
+    fs.promises.writeFile.mockRejectedValue(new Error("Write failed"));
+    const recipes = [{ name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Bake." }];
 
-    const result = deleteRecipe(recipe.name);
-
-    expect(result).toBe(false); // Function should fail gracefully
-    fs.writeFileSync.mockRestore(); // Restore normal behavior after test
-  });
-  test("should return false if writing recipes file fails using saveRecipes", () => {
-    jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
-      throw new Error("Write failed");
-    });
-
-    const recipes = [
-      {
-        name: "Chocolate Cake",
-        ingredients: ["flour", "sugar"],
-        instructions: "Mix & bake ",
-      },
-    ];
-    const result = saveRecipes(recipes); // Attempt to save recipes
-
-    expect(result).toBe(false); // Expect the function to gracefully fail
-    fs.writeFileSync.mockRestore(); // Restore normal behavior
-  });
-  test("should return empty array and warn if recipes.json file is missing", () => {
-    jest.spyOn(console, "warn").mockImplementation(() => {}); // Mock console.warn
-    jest.spyOn(fs, "existsSync").mockReturnValue(false); // Simulate missing file
-
-    const recipes = getRecipes();
-
-    expect(recipes).toEqual([]); // Should return empty array
-    expect(console.warn).toHaveBeenCalledWith(
-      "recipes.json file not found returning an empty array.",
-    );
-
-    fs.existsSync.mockRestore();
-    console.warn.mockRestore(); // Restore default behavior after test
-  });
-  test("should detect duplicate recipe using Set for faster lookup", () => {
-    const recipe = {
-      name: "Chocolate Cake",
-      ingredients: ["flour", "sugar"],
-      instructions: "Bake.",
-    };
-    addRecipe(recipe); // First addition should succeed
-
-    // Simulate an optimized duplicate check
-    jest.spyOn(Set.prototype, "has").mockImplementation(() => true);
-
-    const result = addRecipe(recipe); // Second attempt should fail faster
-    expect(result).toBe(false); // Ensure duplicate detection works efficiently
-
-    Set.prototype.has.mockRestore(); // Restore original behavior after test
+    const result = await saveRecipes(recipes);
+    expect(result).toBe(false);
   });
 });

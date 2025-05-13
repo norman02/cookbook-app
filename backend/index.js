@@ -5,15 +5,15 @@ const path = require("path");
 const filePath = path.join(__dirname, "recipes.json");
 
 /**
- * Helper function to save recipes to the JSON file.
+ * Helper function to save recipes asynchronously.
  * Returns `true` if successful, `false` otherwise.
  */
-const saveRecipes = (recipes) => {
+const saveRecipes = async (recipes) => {
   try {
-    fs.writeFileSync(filePath, JSON.stringify(recipes, null, 2));
+    await fs.promises.writeFile(filePath, JSON.stringify(recipes, null, 2));
     return true;
   } catch (error) {
-    console.error("❌ Error saving recipes:", error);
+    console.error("❌ Error saving recipes asynchronously:", error);
     return false;
   }
 };
@@ -24,14 +24,15 @@ const saveRecipes = (recipes) => {
  */
 const getRecipes = () => {
   if (!fs.existsSync(filePath)) {
-    console.warn("recipes.json file not found returning an empty array.");
-    return []; // Ensures consistency in return type
+    console.warn("⚠️ recipes.json file not found, returning an empty array.");
+    return [];
   }
   try {
     const data = fs.readFileSync(filePath, "utf-8");
-    return JSON.parse(data) || []; // Fallback to an empty array
+    const parsedData = JSON.parse(data);
+    return Array.isArray(parsedData) ? parsedData : []; // Ensures valid output
   } catch (error) {
-    console.error("Failed to parse recipes.json", error);
+    console.error("❌ Failed to parse recipes.json:", error);
     return [];
   }
 };
@@ -41,8 +42,7 @@ const getRecipes = () => {
  * Prevents duplicate recipes based on name (case insensitive).
  * Returns `true` if successful, `false` otherwise.
  */
-// Assign a unique ID to the recipe
-const addRecipe = (recipe) => {
+const addRecipe = async (recipe) => {
   const recipes = getRecipes();
   const recipeNames = new Set(recipes.map((r) => r.name.toLowerCase().trim()));
 
@@ -55,17 +55,18 @@ const addRecipe = (recipe) => {
   recipe.id = recipes.length + 1;
   recipes.push(recipe);
 
-  return saveRecipes(recipes);
+  return await saveRecipes(recipes);
 };
+
 /**
  * Updates an existing recipe by name.
  * Merges new properties into the existing recipe.
  * Returns `true` if successful, `false` if the recipe is not found.
  */
-const updateRecipe = (recipeName, updatedRecipe) => {
+const updateRecipe = async (recipeName, updatedRecipe) => {
   const recipes = getRecipes();
   const index = recipes.findIndex(
-    (r) => r.name.toLowerCase() === recipeName.toLowerCase(),
+    (r) => r.name.toLowerCase() === recipeName.toLowerCase()
   );
 
   if (index === -1) {
@@ -76,17 +77,17 @@ const updateRecipe = (recipeName, updatedRecipe) => {
   // Merge updates into the existing recipe
   recipes[index] = { ...recipes[index], ...updatedRecipe };
 
-  return saveRecipes(recipes);
+  return await saveRecipes(recipes);
 };
 
 /**
  * Deletes a recipe by name.
  * Returns `true` if successful, `false` if the recipe does not exist.
  */
-const deleteRecipe = (recipeName) => {
+const deleteRecipe = async (recipeName) => {
   const recipes = getRecipes();
   const updatedRecipes = recipes.filter(
-    (r) => r.name.toLowerCase() !== recipeName.toLowerCase(),
+    (r) => r.name.toLowerCase() !== recipeName.toLowerCase()
   );
 
   if (updatedRecipes.length === recipes.length) {
@@ -94,7 +95,7 @@ const deleteRecipe = (recipeName) => {
     return false;
   }
 
-  return saveRecipes(updatedRecipes);
+  return await saveRecipes(updatedRecipes);
 };
 
 // Export functions for external use

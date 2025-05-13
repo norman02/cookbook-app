@@ -1,11 +1,13 @@
 [
   {
-    "name": "Chocolate Cake",
+    "name": "Test Recipe",
     "ingredients": [
-      "flour",
-      "sugar"
+      "item"
     ],
-    "instructions": "Bake.",
+    "instructions": "Do something",
+    "id": 1
+  }
+]ctions": "Mix ingredients and bake.",
     "id": 1
   }
 ]
