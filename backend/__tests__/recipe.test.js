@@ -131,4 +131,35 @@ describe("Recipe API", () => {
     const recipes = getRecipes();
     expect(recipes).toEqual([]);
   });
+  test("should add a recipe with categrory", async () => {
+    mockFileExists(true, []); // Simulate an empty recipe array.
+    fs.promises.writeFile.mockResolvedValue();
+
+    const newRecipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar"],
+      instructions: "Bake at 350 F for 30 minutes.",
+      categrory: "Desert",
+    };
+    const result = await addRecipe(newRecipe);
+    expect(result).toBe(true);
+  });
+  test("should ignore unexpected fields in recipe", async () => {
+    mockFileExists(true, []);
+    fs.promises.writeFile.mockResolvedValue();
+
+    const newRecipe = {
+      name: "Chocolate Cake",
+      ingredients: ["flour", "sugar"],
+      instructions: "Bake at 350°F",
+      category: "Dessert",
+      maliciousField: "HACKER_DATA", // Unwanted field
+    };
+
+    const result = await addRecipe(newRecipe);
+    expect(result).toBe(true);
+
+    const recipes = getRecipes();
+    expect(recipes.some((r) => r.maliciousField)).toBe(false); // Ensure it's removed
+  });
 });

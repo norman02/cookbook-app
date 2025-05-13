@@ -3,7 +3,8 @@ const path = require("path");
 
 // Define path for recipe storage file
 const filePath = path.join(__dirname, "recipes.json");
-
+// Define allowed fields
+const allowedFields = ["name", "ingredients", "instructions", "category"];
 /**
  * Saves recipes asynchronously to the JSON file.
  * - Uses `fs.promises.writeFile` to avoid blocking execution.
@@ -56,16 +57,23 @@ const getRecipes = () => {
  * @returns {Promise<boolean>} - `true` if successfully added, `false` if duplicate.
  */
 const addRecipe = async (recipe) => {
+  const filteredRecipe = Object.keys(recipe)
+    .filter((key) => allowedFields.includes(key)) // Allow only valid fields
+    .reduce((obj, key) => {
+      obj[key] = recipe[key];
+      return obj;
+    }, {});
+
   const recipes = getRecipes();
   const recipeNames = new Set(recipes.map((r) => r.name.toLowerCase().trim()));
 
-  if (recipeNames.has(recipe.name.toLowerCase().trim())) {
+  if (recipeNames.has(filteredRecipe.name.toLowerCase().trim())) {
     console.error("⚠️ Recipe already exists!");
     return false;
   }
 
-  recipe.id = recipes.length + 1; // Assign unique ID
-  recipes.push(recipe); // Add new recipe
+  filteredRecipe.id = recipes.length + 1; // Assign unique ID
+  recipes.push(filteredRecipe);
 
   return await saveRecipes(recipes);
 };
@@ -91,7 +99,14 @@ const updateRecipe = async (recipeName, updatedRecipe) => {
     return false;
   }
 
-  recipes[index] = { ...recipes[index], ...updatedRecipe }; // Merge updates
+  const filteredUpdate = Object.keys(updatedRecipe)
+    .filter((key) => allowedFields.includes(key)) // Filter unwanted fields
+    .reduce((obj, key) => {
+      obj[key] = updatedRecipe[key];
+      return obj;
+    }, {});
+
+  recipes[index] = { ...recipes[index], ...filteredUpdate };
 
   return await saveRecipes(recipes);
 };
@@ -108,7 +123,7 @@ const updateRecipe = async (recipeName, updatedRecipe) => {
 const deleteRecipe = async (recipeName) => {
   const recipes = getRecipes();
   const updatedRecipes = recipes.filter(
-    (r) => r.name.toLowerCase() !== recipeName.toLowerCase()
+    (r) => r.name.toLowerCase() !== recipeName.toLowerCase(),
   );
 
   if (updatedRecipes.length === recipes.length) {
