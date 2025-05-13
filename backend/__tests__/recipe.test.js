@@ -1,6 +1,7 @@
 const fs = require("fs");
 const { getRecipes, addRecipe, updateRecipe, deleteRecipe, saveRecipes } = require("../index");
 
+// Mock file system functions
 jest.mock("fs", () => ({
   existsSync: jest.fn(),
   readFileSync: jest.fn(),
@@ -9,83 +10,85 @@ jest.mock("fs", () => ({
   },
 }));
 
+// Shared test recipe
+const testRecipe = {
+  name: "Chocolate Cake",
+  ingredients: ["flour", "sugar"],
+  instructions: "Bake at 350°F for 30 minutes.",
+};
+
+// Helper function to mock file existence and contents
+const mockFileExists = (exists, recipes = []) => {
+  fs.existsSync.mockReturnValue(exists);
+  fs.readFileSync.mockReturnValue(JSON.stringify(recipes));
+};
+
 // Setup and Cleanup
 beforeEach(() => {
-  jest.spyOn(console, "error").mockImplementation(() => {}); // Silence console errors in tests
+  jest.spyOn(console, "error").mockImplementation(() => {});
   jest.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 afterEach(() => {
   console.error.mockRestore();
   console.warn.mockRestore();
-  jest.restoreAllMocks(); // Restore original behavior
+  jest.restoreAllMocks();
 });
 
 describe("Recipe API", () => {
   test("should return an array of recipes", () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake" }]));
+    mockFileExists(true, [testRecipe]);
 
     const recipes = getRecipes();
     expect(Array.isArray(recipes)).toBe(true);
-    expect(recipes.length).toBe(1);
+    expect(recipes).toHaveLength(1);
   });
 
   test("should return an empty array if recipes.json is missing", () => {
-    fs.existsSync.mockReturnValue(false);
+    mockFileExists(false);
+
     const recipes = getRecipes();
     expect(recipes).toEqual([]);
     expect(console.warn).toHaveBeenCalledWith("⚠️ recipes.json file not found, returning an empty array.");
   });
 
   test("should add a new recipe", async () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(JSON.stringify([]));
+    mockFileExists(true, []);
+    fs.promises.writeFile.mockResolvedValue();
 
-    const newRecipe = { name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Bake." };
-    fs.promises.writeFile.mockResolvedValue(); // Simulate successful file write
-
-    const result = await addRecipe(newRecipe);
+    const result = await addRecipe(testRecipe);
     expect(result).toBe(true);
   });
 
   test("should not add a duplicate recipe", async () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake" }]));
-
-    const duplicateRecipe = { name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Bake." };
+    mockFileExists(true, [testRecipe]);
     fs.promises.writeFile.mockResolvedValue();
 
-    const result = await addRecipe(duplicateRecipe);
+    const result = await addRecipe(testRecipe);
     expect(result).toBe(false);
   });
 
   test("should update an existing recipe", async () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake", ingredients: ["flour"] }]));
-
-    const updatedRecipe = { ingredients: ["flour", "sugar", "vanilla"] };
+    mockFileExists(true, [testRecipe]);
     fs.promises.writeFile.mockResolvedValue();
 
-    const result = await updateRecipe("Chocolate Cake", updatedRecipe);
+    const updatedRecipe = { ingredients: ["flour", "sugar", "vanilla"] };
+    const result = await updateRecipe(testRecipe.name, updatedRecipe);
     expect(result).toBe(true);
   });
 
   test("should delete an existing recipe", async () => {
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue(JSON.stringify([{ name: "Chocolate Cake" }]));
-
+    mockFileExists(true, [testRecipe]);
     fs.promises.writeFile.mockResolvedValue();
 
-    const result = await deleteRecipe("Chocolate Cake");
+    const result = await deleteRecipe(testRecipe.name);
     expect(result).toBe(true);
   });
 
   test("should return false if writing recipes file fails", async () => {
     fs.promises.writeFile.mockRejectedValue(new Error("Write failed"));
-    const recipes = [{ name: "Chocolate Cake", ingredients: ["flour", "sugar"], instructions: "Bake." }];
 
-    const result = await saveRecipes(recipes);
+    const result = await saveRecipes([testRecipe]);
     expect(result).toBe(false);
   });
 });
