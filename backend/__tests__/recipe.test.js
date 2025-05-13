@@ -1,5 +1,11 @@
 const fs = require("fs");
-const { getRecipes, addRecipe, updateRecipe, deleteRecipe, saveRecipes } = require("../index");
+const {
+  getRecipes,
+  addRecipe,
+  updateRecipe,
+  deleteRecipe,
+  saveRecipes,
+} = require("../index");
 
 // Mock file system functions
 jest.mock("fs", () => ({
@@ -49,7 +55,9 @@ describe("Recipe API", () => {
 
     const recipes = getRecipes();
     expect(recipes).toEqual([]);
-    expect(console.warn).toHaveBeenCalledWith("⚠️ recipes.json file not found, returning an empty array.");
+    expect(console.warn).toHaveBeenCalledWith(
+      "⚠️ recipes.json file not found, returning an empty array.",
+    );
   });
 
   test("should add a new recipe", async () => {
@@ -90,5 +98,37 @@ describe("Recipe API", () => {
 
     const result = await saveRecipes([testRecipe]);
     expect(result).toBe(false);
+  });
+  test("should return an empty array if recipes.json contains invalid JSON", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue("INVALID_JSON"); // Corrupted JSON
+
+    const recipes = getRecipes();
+    expect(recipes).toEqual([]);
+  });
+  test("should return false if trying to update a non-existent recipe", async () => {
+    mockFileExists(true, []); // No recipes exist
+    fs.promises.writeFile.mockResolvedValue();
+
+    const result = await updateRecipe("Nonexistent Recipe", {
+      ingredients: ["vanilla"],
+    });
+    expect(result).toBe(false);
+  });
+  test("should return false if trying to delete a non-existent recipe", async () => {
+    mockFileExists(true, []); // No recipes exist
+    fs.promises.writeFile.mockResolvedValue();
+
+    const result = await deleteRecipe("Nonexistent Recipe");
+    expect(result).toBe(false);
+  });
+  test("should return an empty array if parsed data is not an array", () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(
+      JSON.stringify({ invalidKey: "Not an array" }),
+    ); // Simulate incorrect JSON structure
+
+    const recipes = getRecipes();
+    expect(recipes).toEqual([]);
   });
 });
