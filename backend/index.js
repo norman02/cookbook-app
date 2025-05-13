@@ -1,17 +1,76 @@
 const fs = require("fs");
 const path = require("path");
 
-// Define path for recipe storage file
+// Define the path for storing recipe data
 const filePath = path.join(__dirname, "recipes.json");
-// Define allowed fields
-const allowedFields = ["name", "ingredients", "instructions", "category"];
+
+/**
+ * Centralized schema definition for recipe validation.
+ * - Allows easy modifications without refactoring core logic.
+ * - Defines required fields and their expected types.
+ */
+const recipeSchema = {
+  name: { type: "string", required: true },
+  ingredients: { type: "array", required: true },
+  instructions: { type: "string", required: true },
+  category: { type: "string", required: false },
+  tags: { type: "array", required: false } // Enables dietary labels like 'vegan' and 'gluten-free'
+};
+
+/**
+ * Validates a recipe (or update) against the defined schema.
+ * - Only copies fields that exist in the schema.
+ * - Checks that the provided value's type matches the expected type.
+ * - For new recipes (isUpdate == false) it rejects if a required field is missing.
+ * - After validation, any missing optional field is given a default value.
+ *
+ * @param {Object} recipe - The recipe (or update) to validate.
+ * @param {boolean} [isUpdate=false] - If true, do not require missing fields.
+ * @returns {Object|null} - The validated recipe or `null` if validation fails.
+ */
+const validateRecipe = (recipe, isUpdate = false) => {
+  const validatedRecipe = {};
+
+  // Only consider keys from the schema; ignore any unexpected fields.
+  for (const [key, rule] of Object.entries(recipeSchema)) {
+    if (recipe[key] !== undefined) {
+      if (rule.type === "array" && !Array.isArray(recipe[key])) {
+        // If an array is expected but not provided correctly, use an empty array
+        validatedRecipe[key] = [];
+      } else if (rule.type === "string" && typeof recipe[key] !== "string") {
+        // If a string is expected but the type doesn’t match, default to empty string
+        validatedRecipe[key] = "";
+      } else {
+        validatedRecipe[key] = recipe[key];
+      }
+    } else if (rule.required && !isUpdate) {
+      // For new recipes, if a required field is missing, fail validation
+      console.error(`❌ Missing required field: ${key}`);
+      return null;
+    }
+  }
+
+  // Append default values for missing optional fields.
+  // This ensures fields like "tags" are always defined (useful for later checks)
+  for (const [key, rule] of Object.entries(recipeSchema)) {
+    if (validatedRecipe[key] === undefined) {
+      if (rule.type === "array") {
+        validatedRecipe[key] = [];
+      } else if (rule.type === "string") {
+        validatedRecipe[key] = "";
+      }
+    }
+  }
+
+  return validatedRecipe;
+};
+
 /**
  * Saves recipes asynchronously to the JSON file.
- * - Uses `fs.promises.writeFile` to avoid blocking execution.
- * - Returns `true` on success, `false` on failure.
- * - Catches errors to prevent application crashes.
+ * - Uses `fs.promises.writeFile` to prevent blocking execution.
+ * - Catches errors to avoid application crashes.
  *
- * @param {Array} recipes - List of recipes to be saved.
+ * @param {Array} recipes - Array of recipes to save.
  * @returns {Promise<boolean>} - `true` if successful, `false` otherwise.
  */
 const saveRecipes = async (recipes) => {
@@ -27,8 +86,7 @@ const saveRecipes = async (recipes) => {
 /**
  * Retrieves all recipes from the JSON file.
  * - Returns an empty array if the file is missing.
- * - Handles corrupted JSON gracefully to prevent application crashes.
- * - Ensures valid output by checking if parsed data is an array.
+ * - Handles corrupted JSON gracefully to prevent crashes.
  *
  * @returns {Array} - Array of stored recipes.
  */
@@ -48,45 +106,41 @@ const getRecipes = () => {
 };
 
 /**
- * Adds a new recipe to the storage file.
- * - Prevents duplicates using a Set for fast lookup (O(1) complexity).
- * - Assigns a unique ID based on the number of existing recipes.
- * - Calls `saveRecipes()` to persist data.
+ * Adds a new recipe to storage.
+ * - Validates the recipe using the schema.
+ * - Ensures the recipe name is unique.
  *
- * @param {Object} recipe - Recipe object with `name`, `ingredients`, and `instructions`.
- * @returns {Promise<boolean>} - `true` if successfully added, `false` if duplicate.
+ * @param {Object} recipe - Recipe object to add.
+ * @returns {Promise<boolean>} - `true` if successfully added, `false` otherwise.
  */
 const addRecipe = async (recipe) => {
-  const filteredRecipe = Object.keys(recipe)
-    .filter((key) => allowedFields.includes(key)) // Allow only valid fields
-    .reduce((obj, key) => {
-      obj[key] = recipe[key];
-      return obj;
-    }, {});
+  const validatedRecipe = validateRecipe(recipe);
+  if (!validatedRecipe) return false; // Reject if validation fails
 
   const recipes = getRecipes();
-  const recipeNames = new Set(recipes.map((r) => r.name.toLowerCase().trim()));
+  const recipeNames = new Set(
+    recipes.map((r) => r.name.toLowerCase().trim())
+  );
 
-  if (recipeNames.has(filteredRecipe.name.toLowerCase().trim())) {
+  if (recipeNames.has(validatedRecipe.name.toLowerCase().trim())) {
     console.error("⚠️ Recipe already exists!");
     return false;
   }
 
-  filteredRecipe.id = recipes.length + 1; // Assign unique ID
-  recipes.push(filteredRecipe);
+  validatedRecipe.id = recipes.length + 1; // Assign a unique ID
+  recipes.push(validatedRecipe);
 
   return await saveRecipes(recipes);
 };
 
 /**
- * Updates an existing recipe by name.
- * - Uses `findIndex()` to locate the recipe for modification.
- * - Merges new properties into the existing recipe to prevent overwriting.
- * - Calls `saveRecipes()` to persist the changes.
+ * Updates an existing recipe.
+ * - Validates the updated fields (allows partial updates).
+ * - Merges the validated update data into the existing recipe.
  *
  * @param {string} recipeName - Name of the recipe to update.
- * @param {Object} updatedRecipe - Object containing new properties (e.g., updated ingredients).
- * @returns {Promise<boolean>} - `true` if update is successful, `false` if recipe not found.
+ * @param {Object} updatedRecipe - New properties to update.
+ * @returns {Promise<boolean>} - `true` if updated, `false` otherwise.
  */
 const updateRecipe = async (recipeName, updatedRecipe) => {
   const recipes = getRecipes();
@@ -99,23 +153,18 @@ const updateRecipe = async (recipeName, updatedRecipe) => {
     return false;
   }
 
-  const filteredUpdate = Object.keys(updatedRecipe)
-    .filter((key) => allowedFields.includes(key)) // Filter unwanted fields
-    .reduce((obj, key) => {
-      obj[key] = updatedRecipe[key];
-      return obj;
-    }, {});
+  // For updates, we allow partial changes; hence pass 'true' for isUpdate.
+  const validatedUpdate = validateRecipe(updatedRecipe, true);
+  if (!validatedUpdate) return false; // Reject invalid updates
 
-  recipes[index] = { ...recipes[index], ...filteredUpdate };
+  recipes[index] = { ...recipes[index], ...validatedUpdate };
 
   return await saveRecipes(recipes);
 };
 
 /**
  * Deletes a recipe by name.
- * - Uses `filter()` to remove the specified recipe.
- * - Returns `false` if the recipe does not exist.
- * - Calls `saveRecipes()` to persist the deletion.
+ * - Ensures only existing recipes are removed.
  *
  * @param {string} recipeName - Name of the recipe to delete.
  * @returns {Promise<boolean>} - `true` if deletion was successful, `false` otherwise.
@@ -123,7 +172,7 @@ const updateRecipe = async (recipeName, updatedRecipe) => {
 const deleteRecipe = async (recipeName) => {
   const recipes = getRecipes();
   const updatedRecipes = recipes.filter(
-    (r) => r.name.toLowerCase() !== recipeName.toLowerCase(),
+    (r) => r.name.toLowerCase() !== recipeName.toLowerCase()
   );
 
   if (updatedRecipes.length === recipes.length) {
@@ -134,7 +183,7 @@ const deleteRecipe = async (recipeName) => {
   return await saveRecipes(updatedRecipes);
 };
 
-// Export functions for external use, enabling modularity and code reuse
+// Export functions for modularity and code reuse
 module.exports = {
   getRecipes,
   addRecipe,
