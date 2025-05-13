@@ -5,8 +5,13 @@ const path = require("path");
 const filePath = path.join(__dirname, "recipes.json");
 
 /**
- * Helper function to save recipes asynchronously.
- * Returns `true` if successful, `false` otherwise.
+ * Saves recipes asynchronously to the JSON file.
+ * - Uses `fs.promises.writeFile` to avoid blocking execution.
+ * - Returns `true` on success, `false` on failure.
+ * - Catches errors to prevent application crashes.
+ *
+ * @param {Array} recipes - List of recipes to be saved.
+ * @returns {Promise<boolean>} - `true` if successful, `false` otherwise.
  */
 const saveRecipes = async (recipes) => {
   try {
@@ -20,7 +25,11 @@ const saveRecipes = async (recipes) => {
 
 /**
  * Retrieves all recipes from the JSON file.
- * If the file is missing or unreadable, returns an empty array.
+ * - Returns an empty array if the file is missing.
+ * - Handles corrupted JSON gracefully to prevent application crashes.
+ * - Ensures valid output by checking if parsed data is an array.
+ *
+ * @returns {Array} - Array of stored recipes.
  */
 const getRecipes = () => {
   if (!fs.existsSync(filePath)) {
@@ -30,7 +39,7 @@ const getRecipes = () => {
   try {
     const data = fs.readFileSync(filePath, "utf-8");
     const parsedData = JSON.parse(data);
-    return Array.isArray(parsedData) ? parsedData : []; // Ensures valid output
+    return Array.isArray(parsedData) ? parsedData : []; // Ensures valid output format
   } catch (error) {
     console.error("❌ Failed to parse recipes.json:", error);
     return [];
@@ -39,8 +48,12 @@ const getRecipes = () => {
 
 /**
  * Adds a new recipe to the storage file.
- * Prevents duplicate recipes based on name (case insensitive).
- * Returns `true` if successful, `false` otherwise.
+ * - Prevents duplicates using a Set for fast lookup (O(1) complexity).
+ * - Assigns a unique ID based on the number of existing recipes.
+ * - Calls `saveRecipes()` to persist data.
+ *
+ * @param {Object} recipe - Recipe object with `name`, `ingredients`, and `instructions`.
+ * @returns {Promise<boolean>} - `true` if successfully added, `false` if duplicate.
  */
 const addRecipe = async (recipe) => {
   const recipes = getRecipes();
@@ -51,17 +64,21 @@ const addRecipe = async (recipe) => {
     return false;
   }
 
-  // Assign a unique ID & push recipe
-  recipe.id = recipes.length + 1;
-  recipes.push(recipe);
+  recipe.id = recipes.length + 1; // Assign unique ID
+  recipes.push(recipe); // Add new recipe
 
   return await saveRecipes(recipes);
 };
 
 /**
  * Updates an existing recipe by name.
- * Merges new properties into the existing recipe.
- * Returns `true` if successful, `false` if the recipe is not found.
+ * - Uses `findIndex()` to locate the recipe for modification.
+ * - Merges new properties into the existing recipe to prevent overwriting.
+ * - Calls `saveRecipes()` to persist the changes.
+ *
+ * @param {string} recipeName - Name of the recipe to update.
+ * @param {Object} updatedRecipe - Object containing new properties (e.g., updated ingredients).
+ * @returns {Promise<boolean>} - `true` if update is successful, `false` if recipe not found.
  */
 const updateRecipe = async (recipeName, updatedRecipe) => {
   const recipes = getRecipes();
@@ -74,15 +91,19 @@ const updateRecipe = async (recipeName, updatedRecipe) => {
     return false;
   }
 
-  // Merge updates into the existing recipe
-  recipes[index] = { ...recipes[index], ...updatedRecipe };
+  recipes[index] = { ...recipes[index], ...updatedRecipe }; // Merge updates
 
   return await saveRecipes(recipes);
 };
 
 /**
  * Deletes a recipe by name.
- * Returns `true` if successful, `false` if the recipe does not exist.
+ * - Uses `filter()` to remove the specified recipe.
+ * - Returns `false` if the recipe does not exist.
+ * - Calls `saveRecipes()` to persist the deletion.
+ *
+ * @param {string} recipeName - Name of the recipe to delete.
+ * @returns {Promise<boolean>} - `true` if deletion was successful, `false` otherwise.
  */
 const deleteRecipe = async (recipeName) => {
   const recipes = getRecipes();
@@ -98,7 +119,7 @@ const deleteRecipe = async (recipeName) => {
   return await saveRecipes(updatedRecipes);
 };
 
-// Export functions for external use
+// Export functions for external use, enabling modularity and code reuse
 module.exports = {
   getRecipes,
   addRecipe,
