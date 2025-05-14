@@ -45,3 +45,4 @@ Thumbs.db
 /parcel-cache/
 /webpack/
 
+jest.config.js
